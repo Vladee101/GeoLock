@@ -16,13 +16,16 @@ export default function Map({ onMapReady, drops, onSelectDrop }: Props) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
+    const isMobile = window.innerWidth < 768;
+
     const map = L.map(containerRef.current, {
       attributionControl: false,
+      zoomControl: !isMobile,
     }).setView([40.6950, -74.0060], 13);
 
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-  maxZoom: 19,
-}).addTo(map);
+      maxZoom: 19,
+    }).addTo(map);
 
     mapRef.current = map;
     onMapReady(map);
@@ -39,6 +42,14 @@ export default function Map({ onMapReady, drops, onSelectDrop }: Props) {
       const m = L.marker([drop.lat, drop.lng], {
         icon: drop.you_are_inside ? unlockedIcon : lockedIcon,
       }).addTo(map);
+      if (drop.title) {
+        m.bindTooltip(drop.title, {
+          permanent: true,
+          direction: 'top',
+          offset: [0, -36],
+          className: 'drop-label',
+        });
+      }
       m.on('click', () => onSelectDrop(drop));
       markers.push(m);
     });
