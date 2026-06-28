@@ -1,0 +1,5 @@
+{
+  "name": "geolock",
+  "private": true,
+  "engines": { "node": ">=20" }
+}
