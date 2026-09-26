@@ -23,9 +23,9 @@ export default function Map({ onMapReady, drops, onSelectDrop }: Props) {
       zoomControl: !isMobile,
     }).setView([40.6950, -74.0060], 13);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+}).addTo(map);
 
     mapRef.current = map;
     onMapReady(map);
