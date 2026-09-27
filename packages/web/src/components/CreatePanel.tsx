@@ -164,8 +164,13 @@ export default function CreatePanel({ map, isOpen, onClose, pin, setPin }: Props
   // so a tap is hitting the sheet, not the map underneath it.
   useEffect(() => {
     if (!isOpen || !map || (isMobile && step === 'form')) return;
-    const handler = (e: L.LeafletMouseEvent) =>
-      setPin({ lat: e.latlng.lat, lng: e.latlng.lng });
+    // Leaflet returns raw, unwrapped coords on click — tapping a repeated
+    // world copy (low zoom / panned past ±180°) yields lng like -434.05884,
+    // which the server's [-180, 180] check rejects. wrap() normalizes it.
+    const handler = (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng.wrap();
+      setPin({ lat, lng });
+    };
     map.on('click', handler);
     return () => { map.off('click', handler); };
   }, [isOpen, map, step, isMobile]);

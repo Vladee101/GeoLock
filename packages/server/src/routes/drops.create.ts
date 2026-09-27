@@ -30,7 +30,15 @@ export async function createDropRoute(app: FastifyInstance) {
     if (key && key.length > MAX_KEY_LENGTH)
       return reply.status(400).send({ error: `key must be under ${MAX_KEY_LENGTH} characters` });
 
-    if (lat < -90 || lat > 90 || lng < -180 || lng > 180)
+    // Coerce once: numeric strings ("52.2") pass range checks via JS
+    // comparison coercion, but NaN ("abc", objects) slips through < / >
+    // (all NaN comparisons are false) and would reach PostGIS as a 500
+    // instead of this clean 400. Number.isFinite closes that gap.
+    const latNum = Number(lat);
+    const lngNum = Number(lng);
+
+    if (!Number.isFinite(latNum) || !Number.isFinite(lngNum) ||
+        latNum < -90 || latNum > 90 || lngNum < -180 || lngNum > 180)
       return reply.status(400).send({ error: 'lat/lng out of range' });
 
     if (radius_m < MIN_RADIUS_M || radius_m > MAX_RADIUS_M)
@@ -55,7 +63,7 @@ export async function createDropRoute(app: FastifyInstance) {
         ST_Buffer(ST_SetSRID(ST_MakePoint($5, $4), 4326)::geography, $6),
         $6, $7, $8, $9, $10
       )
-    `, [slug, title ?? null, content, lat, lng, radius_m, key_hash, owner_token, expires, viewExpiry()]);
+    `, [slug, title ?? null, content, latNum, lngNum, radius_m, key_hash, owner_token, expires, viewExpiry()]);
 
     return reply.status(201).send({ slug, owner_token, expires_at: expires });
   });
