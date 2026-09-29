@@ -13,7 +13,7 @@ export default function App() {
   if (ownerMatch) return <OwnerView slug={ownerMatch[1]} />;
 
   const [map, setMap] = useState<L.Map | null>(null);
-  const { position } = useGeolocation();
+  const { position, approximate, error } = useGeolocation();
   const drops = useNearbyDrops(position);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -28,6 +28,8 @@ export default function App() {
     <div style={{ position: 'relative' }}>
       <Map
         onMapReady={setMap}
+        position={position}
+        approximate={approximate}
         drops={drops}
         onSelectDrop={drop => setSelectedId(drop.id)}
       />
@@ -53,6 +55,14 @@ export default function App() {
       >
         +
       </button>
+
+      {error && !position && (
+        <div style={{ position: 'fixed', bottom: 12, right: 16, zIndex: 1000, fontSize: 12, color: '#E24B4A', pointerEvents: 'none', textAlign: 'right' }}>
+          {approximate
+            ? 'Approximate location (IP) — allow location access for precise drops'
+            : 'Location unavailable — allow location access, showing New York'}
+        </div>
+      )}
 
       <div style={{ position: 'fixed', bottom: 12, left: 16, zIndex: 1000, fontSize: 12, color: '#555', pointerEvents: 'none' }}>
         Built by{' '}

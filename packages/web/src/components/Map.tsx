@@ -2,16 +2,23 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { lockedIcon, unlockedIcon } from './DropPin.tsx';
 import type { NearbyDrop } from '../hooks/useNearbyDrops.ts';
+import type { Position } from '../hooks/useGeolocation.ts';
 
 interface Props {
   onMapReady: (map: L.Map) => void;
+  position: Position | null;
+  approximate: Position | null;
   drops: NearbyDrop[];
   onSelectDrop: (drop: NearbyDrop) => void;
 }
 
-export default function Map({ onMapReady, drops, onSelectDrop }: Props) {
+export default function Map({ onMapReady, position, approximate, drops, onSelectDrop }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  // Centering priority: 'none' → 'approx' (IP, city level) → 'gps' (street
+  // level). 'gps' is terminal — watchPosition keeps firing on GPS jitter, and
+  // re-centering on every update would fight the user's panning.
+  const centerRef = useRef<'none' | 'approx' | 'gps'>('none');
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -28,10 +35,29 @@ export default function Map({ onMapReady, drops, onSelectDrop }: Props) {
 }).addTo(map);
 
     mapRef.current = map;
+    // A fresh map instance starts uncentered (matters under StrictMode,
+    // which mounts effects twice in dev).
+    centerRef.current = 'none';
     onMapReady(map);
 
     return () => { mapRef.current?.remove(); mapRef.current = null; };
   }, []);
+
+  // Center on the visitor: an IP-based city-level fix flies in immediately
+  // (no permission prompt); the first GPS fix upgrades it to street level.
+  // If neither ever arrives, the fallback view above stays.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (position && centerRef.current !== 'gps') {
+      centerRef.current = 'gps';
+      map.flyTo([position.lat, position.lng], 15);
+    } else if (!position && approximate && centerRef.current === 'none') {
+      centerRef.current = 'approx';
+      map.flyTo([approximate.lat, approximate.lng], 13);
+    }
+  }, [position, approximate]);
 
   useEffect(() => {
     const map = mapRef.current;
